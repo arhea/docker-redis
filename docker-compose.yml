@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  redis_1:
+    image: redis:3-alpine
+    ports:
+      - 6379
+
+  redis_2:
+    image: redis:3-alpine
+    command: redis-server --slaveof redis_1 6379
+    ports:
+      - 6379
+    depends_on:
+      - redis_1
+
+  redis_3:
+    image: redis:3-alpine
+    command: redis-server --slaveof redis_1 6379
+    ports:
+      - 6379
+    depends_on:
+      - redis_1
+
+  sentinel:
+    build: ./sentinel/3-alpine
+    depends_on:
+      - redis_1
+      - redis_2
+      - redis_3
+    environment:
+      - SENTINEL_QUORUM=2
+      - SENTINEL_DOWN_AFTER=5000
+      - SENTINEL_FAILOVER=5000
+      - MASTER_HOST=redis_1
+
+  proxy:
+    build: ./haproxy/1.7
+    depends_on:
+      - redis_1
+      - redis_2
+      - redis_3
+      - sentinel
+    ports:
+      - '9000:9000'
+      - '6379:6379'
+    environment:
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=password
+      - REDIS_HOSTS=redis_1,redis_2,redis_3
