@@ -13,6 +13,10 @@ sentinel parallel-syncs docker-cluster 1
 sentinel failover-timeout docker-cluster $SENTINEL_FAILOVER
 EOF
 
+if [ -n "$ANNOUNCE_IP" ]; then
+  echo "sentinel announce-ip $ANNOUNCE_IP" >> /etc/redis/sentinel.conf
+fi
+
 chown redis:redis /etc/redis/sentinel.conf
 
 exec "/usr/local/bin/docker-entrypoint.sh" "$@"
